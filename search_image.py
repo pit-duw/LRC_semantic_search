@@ -49,10 +49,10 @@ for j in range(num_topk):
 
 # print(topk_indices)
 # torch.save(image_features, 'image_features.pt')
-print(f"Text token: {text_token}")
-# print("Label probs:", probs)  # prints: [[0.9927937  0.00421068 0.00299572]]
-print(f"Model load time: {model_load_time-start_time }")
-print(f"Listdir time: {listdir_time-model_load_time}")
-print(f"Tokenize text time: {tokenize_text_time-listdir_time}")
-print(f"Features load time: {features_load_time-tokenize_text_time}")
-print(f"Similarity time: {similarity_time-features_load_time}")
+# print(f"Text token: {text_token}")
+# # print("Label probs:", probs)  # prints: [[0.9927937  0.00421068 0.00299572]]
+# print(f"Model load time: {model_load_time-start_time }")
+# print(f"Listdir time: {listdir_time-model_load_time}")
+# print(f"Tokenize text time: {tokenize_text_time-listdir_time}")
+# print(f"Features load time: {features_load_time-tokenize_text_time}")
+# print(f"Similarity time: {similarity_time-features_load_time}")

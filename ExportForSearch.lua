@@ -3,9 +3,8 @@ local LrTasks = import 'LrTasks'
 local LrPathUtils = import 'LrPathUtils'
 local LrFileUtils = import 'LrFileUtils'
 local LrDialogs = import 'LrDialogs'
-local LrExportSession = import 'LrExportSession'
-local LrExportSettings = import 'LrExportSettings'
 local LrLogger = import 'LrLogger'
+local LrProgressScope = import 'LrProgressScope'
 
 local myLogger = LrLogger( 'exportLogger' )
 myLogger:enable( "print" ) -- Pass either a string or a table of actions.
@@ -38,10 +37,19 @@ function fixPath(winPath)
     return path:gsub("%\\", "/")
 end
 
+function countFiles(dir_path)
+    local count = 0
+    for file in LrFileUtils.files(dir_path) do
+        count = count + 1
+    end
+    return count
+end
 
-local LrProgressScope = import 'LrProgressScope'
+
+local refObjTable = {}
 
 LrTasks.startAsyncTask(function()
+    
     outputToLog("Exporting ")
     local catalog = LrApplication.activeCatalog()
     local selectedPhotos = catalog:getAllPhotos()
@@ -49,52 +57,57 @@ LrTasks.startAsyncTask(function()
     -- Create a progress indicator
     local progressScope = LrProgressScope {
         title = "Exporting images to build search index...",
-        functionContext = functionContext,
     }
+
     local folder = _PLUGIN.path .. "\\images448\\"
     LrTasks.execute("mkdir " .. folder)
+    -- make sure the folder is empty
+    -- LrTasks.execute("del /Q " .. folder .. "*")
+    -- LrTasks.execute("rm -rf " .. folder .. "*")
+
     outputToLog("Exporting ")
+    local everythingExported = false
+    for _, photo in ipairs( selectedPhotos ) do
+        if progressScope:isCanceled() then
+            break
+        end
+        local previewname =  photo:getRawMetadata("uuid") .. ".jpg"
 
-    for i, photo in ipairs(selectedPhotos) do
-        outputToLog("Exporting " .. i)
-        if progressScope:isCanceled() then break end
-        outputToLog("Exporting " .. photo:getRawMetadata("uuid"))
-
-        local CatalogID = photo:getRawMetadata("uuid")
-        local previewname =  CatalogID .. ".jpg"
-
-
-        photo:requestJpegThumbnail(448, 448, function(success, failure)
+        table.insert(refObjTable,  photo:requestJpegThumbnail(720, 720, function( success, failure )
             local f = io.open(folder .. previewname,"wb")
             f:write(success)
             f:close()
+            outputToLog("Exported " .. previewname)
+        end ))	
+    end
 
-            -- Update the progress indicator
-            -- progressScope:setPortionComplete(i, #selectedPhotos)
-        end)
+    local fileCount = countFiles(folder)
+    local totalNumPhotos = #selectedPhotos
+    while fileCount < totalNumPhotos and not progressScope:isCanceled() do
+        progressScope:setPortionComplete(fileCount, totalNumPhotos)	
+        outputToLog("Waiting for export ")
+        LrTasks.sleep(2)
+        fileCount = countFiles(folder)
+    end
+
+    if not progressScope:isCanceled() then
+
+        progressScope:done()
+
+        local progressScopeIndex = LrProgressScope {
+            title = "Building search index...",
+        }
+        local lines = {}
+        local cmd = pythonCommand .. fixPath(scriptPath) .. "' > " .. tempFile
+        outputToLog("Executing: " .. cmd)
+        local exitCode = LrTasks.execute(cmd)
+        if exitCode ~= 0 then
+            LrDialogs.showError("Error building search index.")
+            return
+        end
+        progressScopeIndex:done()
+        LrDialogs.message("Search index has been built successfully. You can now search for images using the \"Semantic search\" plugin.")
 
     end
-    LrTasks.sleep(10.0)
-
-    -- LrTasks.sleep(1.5)
-    -- Done with the progress indicator
-    progressScope:done()
-
-    local progressScopeIndex = LrProgressScope {
-        title = "Building search index...",
-        functionContext = functionContext,
-    }
-    local lines = {}
-    local cmd = pythonCommand .. fixPath(scriptPath) .. "' > " .. tempFile
-    outputToLog("Executing: " .. cmd)
-    exitCode = LrTasks.execute(cmd)
-    if exitCode ~= 0 then
-        LrDialogs.showError("Error building search index.")
-        return
-    end
-    progressScopeIndex:done()
-    LrDialogs.message("Search index has been built successfully. You can now search for images using the \"Semantic search\" plugin.")
 
 end)
-
--- end )
