@@ -29,7 +29,7 @@ end
 
 
 -- The path to the Python script used for searching images
-local scriptPath = LrPathUtils.child(_PLUGIN.path, "search_image.py ")
+local scriptPath = LrPathUtils.child(_PLUGIN.path, "SearchImage.py ")
 
 -- The path to the temporary file used for storing the search result data
 local tempFile = LrPathUtils.child(_PLUGIN.path, "temp.dat")
@@ -71,7 +71,7 @@ local function semanticSearchDialog()
 	-- Create an edit field for specifying the maximum search results
 	local MaxSearchResults = f:edit_field {
 		immediate = true,
-		value = "4" -- Default value for the maximum search results
+		value = "10" -- Default value for the maximum search results
 	}
 			
 	-- Create the contents for the dialog.

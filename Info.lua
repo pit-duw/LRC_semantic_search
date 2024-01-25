@@ -42,7 +42,7 @@ return {
 			file = "SimilarImageSearch.lua",
 		},
 	},
-	VERSION = { major=13, minor=0, revision=0, build="202309270914-5a1c6485", },
+	VERSION = { major=13, minor=0, revision=0, build="202401251730", },
 
 }
 

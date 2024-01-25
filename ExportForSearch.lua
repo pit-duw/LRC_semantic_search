@@ -23,7 +23,7 @@ local function outputToLog( message )
 	myLogger:trace( message )
 end
 
-local scriptPath = LrPathUtils.child(_PLUGIN.path, "encode_images.py ")
+local scriptPath = LrPathUtils.child(_PLUGIN.path, "EncodeImages.py ")
 local tempFile = LrPathUtils.child(_PLUGIN.path, "encode.dat")
 
 local pythonCommand = "/usr/local/bin/python3 "
