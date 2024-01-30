@@ -3,21 +3,24 @@ import open_clip
 import os
 from PIL import Image
 
+# Get the path to the directory containing the images to encode
 thisdir = os.path.dirname(os.path.realpath(__file__))
 image_dir = thisdir+"/images320/"
 
+# Load the model
 model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
-tokenizer = open_clip.get_tokenizer('ViT-B-32')
 
+# Get the image filenames
 image_filenames = os.listdir(image_dir)
 
+# Create a list of preprocessed images and convert it to a tensor ready to be encoded by the model
 images = []
-for path in image_filenames:
-    image = preprocess(Image.open(image_dir+path)).unsqueeze(0)
+for filename in image_filenames:
+    image = preprocess(Image.open(image_dir+filename)).unsqueeze(0)
     images.append(image)
-
 image_batch = torch.cat(images)
 
+# Perform the encoding
 with torch.no_grad():
     image_features = model.encode_image(image_batch)
 

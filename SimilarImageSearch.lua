@@ -10,14 +10,14 @@ search term and one for specifying the maximum number of search results.
 -- Access the Lightroom SDK namespaces.
 local LrFunctionContext = import 'LrFunctionContext'
 local LrApplication = import 'LrApplication'
-local catalog = import "LrApplication".activeCatalog()
 local LrBinding = import 'LrBinding'
 local LrDialogs = import 'LrDialogs'
 local LrLogger = import 'LrLogger'
 local LrView = import 'LrView'
-local LrFileUtils = import("LrFileUtils")
-local LrPathUtils = import("LrPathUtils")
-local LrTasks = import("LrTasks")
+local LrFileUtils = import 'LrFileUtils'
+local LrPathUtils = import 'LrPathUtils'
+local LrTasks = import 'LrTasks'
+local LrProgressScope = import 'LrProgressScope'
 
 -- Create the logger and enable the print function.
 local myLogger = LrLogger( 'exportLogger' )
@@ -107,7 +107,12 @@ local function semanticSearchDialog()
 	}
     if result == 'ok' then -- action button was clicked
         LrTasks.startAsyncTask(function()
+			-- Create a progress indicator
+			local progressScope = LrProgressScope {
+				title = "Performing search ...",
+			}
             outputToLog( "Search button clicked." )
+            local catalog = LrApplication.activeCatalog()
             local photo = catalog:getTargetPhoto()
             local photoUUID = ""
             if photo == nil then
@@ -124,7 +129,6 @@ local function semanticSearchDialog()
             local exitCode = LrTasks.execute(cmd)
             outputToLog("Python script exited with code " .. exitCode)
             local cmdOutput = LrFileUtils.readFile(tempFile) -- Read the output from the temp file
-            local catalog = LrApplication.activeCatalog()
             
             -- Creates a new collection in the Lightroom catalog and adds photos to it.
             -- The collection is created with the specified name and is set as the active source.
@@ -143,6 +147,7 @@ local function semanticSearchDialog()
                     LrDialogs.showError("Failed to create collection.")
                 end
             end)
+			progressScope:done()
         end)
     end
 

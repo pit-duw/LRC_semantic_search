@@ -10,14 +10,14 @@ search term and one for specifying the maximum number of search results.
 -- Access the Lightroom SDK namespaces.
 local LrFunctionContext = import 'LrFunctionContext'
 local LrApplication = import 'LrApplication'
-local catalog = import "LrApplication".activeCatalog()
 local LrBinding = import 'LrBinding'
 local LrDialogs = import 'LrDialogs'
 local LrLogger = import 'LrLogger'
 local LrView = import 'LrView'
-local LrFileUtils = import("LrFileUtils")
-local LrPathUtils = import("LrPathUtils")
-local LrTasks = import("LrTasks")
+local LrFileUtils = import 'LrFileUtils'
+local LrPathUtils = import 'LrPathUtils'
+local LrTasks = import 'LrTasks'
+local LrProgressScope = import 'LrProgressScope'
 
 -- Create the logger and enable the print function.
 local myLogger = LrLogger( 'exportLogger' )
@@ -121,6 +121,10 @@ local function semanticSearchDialog()
 	}
     if result == 'ok' then -- action button was clicked
         LrTasks.startAsyncTask(function()
+			-- Create a progress indicator
+			local progressScope = LrProgressScope {
+				title = "Performing search ...",
+			}
             outputToLog( "Search button clicked." )
 			-- Execute the Python script with the specified search term and maximum search results
 			-- The results are piped to a temporary file
@@ -148,6 +152,7 @@ local function semanticSearchDialog()
 					LrDialogs.showError("Failed to create collection.")
 				end
 			end)
+			progressScope:done()
         end)
     end
 
