@@ -29,7 +29,7 @@ end
 
 
 -- The path to the Python script used for searching images
-local scriptPath = LrPathUtils.child(_PLUGIN.path, "SearchImage.py ")
+local scriptPath = LrPathUtils.child(_PLUGIN.path, "TextSearch.py ")
 
 -- The path to the temporary file used for storing the search result data
 local tempFile = LrPathUtils.child(_PLUGIN.path, "temp.dat")
@@ -91,42 +91,6 @@ local function semanticSearchDialog()
 				title = "Search term: "
 			},
 			updateField,
-			f:push_button {
-				title = "Search",
-				
-				-- When the 'Update' button is clicked.
-				action = function()
-					outputToLog( "Search button clicked." )
-					-- Execute the Python script with the specified search term and maximum search results
-					-- The results are piped to a temporary file
-					local cmd = pythonCommand .. fixPath(scriptPath) .. '"Photo of ' .. updateField.value .. '"' .. " " .. MaxSearchResults.value .. "' > " .. tempFile
-					outputToLog("Executing: " .. cmd)
-					LrTasks.startAsyncTask(function()
-						local exitCode = LrTasks.execute(cmd)
-						outputToLog("Python script exited with code " .. exitCode)
-						local cmdOutput = LrFileUtils.readFile(tempFile) -- Read the output from the temp file
-						local catalog = LrApplication.activeCatalog()
-						
-						-- Creates a new collection in the Lightroom catalog and adds photos to it.
-						-- The collection is created with the specified name and is set as the active source.
-						-- If the collection creation fails, an error message is displayed.
-						catalog:withWriteAccessDo("Create Collection", function()
-							local newCollection = catalog:createCollection("Search results", nil, true)
-							if newCollection then
-								newCollection:removeAllPhotos()
-								-- Iterate over the lines in the output from the Python script
-								for line in string.gmatch(cmdOutput, '([^\n]+)') do
-									outputToLog("Adding photo " .. line .. " to collection")
-									newCollection:addPhotos({catalog:findPhotoByUuid(line)})
-								end
-								catalog:setActiveSources({newCollection})
-							else
-								LrDialogs.showError("Failed to create collection.")
-							end
-						end)
-					end)
-				end
-			},
 		},
 
 		-- Create a field for specifying the maximum number of search results
@@ -150,10 +114,42 @@ local function semanticSearchDialog()
 	}
 	
 	-- Presents a modal dialog for semantic search.
-	LrDialogs.presentModalDialog {
+	local result = LrDialogs.presentModalDialog {
 		title = "Semantic Search",
+		actionVerb = "Search", -- label for the action button
 		contents = c,
 	}
+    if result == 'ok' then -- action button was clicked
+        LrTasks.startAsyncTask(function()
+            outputToLog( "Search button clicked." )
+			-- Execute the Python script with the specified search term and maximum search results
+			-- The results are piped to a temporary file
+			local cmd = pythonCommand .. fixPath(scriptPath) .. '"Photo of ' .. updateField.value .. '"' .. " " .. MaxSearchResults.value .. "' > " .. tempFile
+			outputToLog("Executing: " .. cmd)
+			local exitCode = LrTasks.execute(cmd)
+			outputToLog("Python script exited with code " .. exitCode)
+			local cmdOutput = LrFileUtils.readFile(tempFile) -- Read the output from the temp file
+			local catalog = LrApplication.activeCatalog()
+			
+			-- Creates a new collection in the Lightroom catalog and adds photos to it.
+			-- The collection is created with the specified name and is set as the active source.
+			-- If the collection creation fails, an error message is displayed.
+			catalog:withWriteAccessDo("Create Collection", function()
+				local newCollection = catalog:createCollection("Search results", nil, true)
+				if newCollection then
+					newCollection:removeAllPhotos()
+					-- Iterate over the lines in the output from the Python script
+					for line in string.gmatch(cmdOutput, '([^\n]+)') do
+						outputToLog("Adding photo " .. line .. " to collection")
+						newCollection:addPhotos({catalog:findPhotoByUuid(line)})
+					end
+					catalog:setActiveSources({newCollection})
+				else
+					LrDialogs.showError("Failed to create collection.")
+				end
+			end)
+        end)
+    end
 
 end
 

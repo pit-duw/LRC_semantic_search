@@ -1,32 +1,22 @@
 import torch
 import open_clip
 import os
-import time     
-
-start_time = time.time()
 
 thisdir = os.path.dirname(os.path.realpath(__file__))
 image_dir = thisdir+"/images320/"
 
-text_token = os.sys.argv[1]
+text = os.sys.argv[1]
 num_topk = int(os.sys.argv[2])
 
 model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
 tokenizer = open_clip.get_tokenizer('ViT-B-32')
 
-model_load_time = time.time()
-
 image_paths = os.listdir(image_dir)
-listdir_time = time.time()
-text = tokenizer(text_token)
-
-tokenize_text_time = time.time()
+text_token = tokenizer(text)
 
 with torch.no_grad():
     image_features = torch.load(thisdir+'/image_features_open_ViT-B-32.pt').cpu()
-    text_features = model.encode_text(text).cpu()
-    
-    features_load_time = time.time()
+    text_features = model.encode_text(text_token).cpu()
 
     image_features_norm = image_features / image_features.norm(dim=-1, keepdim=True)
     text_features_norm = text_features / text_features.norm(dim=-1, keepdim=True)
@@ -35,16 +25,11 @@ with torch.no_grad():
     similarity = (image_features_norm @ text_features_norm.t())
     topk_values, topk_indices = similarity.topk(num_topk, dim=0)
 
-    similarity_time = time.time()
-
+# Read the image UUIDs and their ID numbers in the tensor from a file
+image_UUIDs = []
+with open(thisdir+'/image_UUIDs.dat', 'r') as f:
+    for line in f.readlines():
+        image_UUIDs.append(line.split(' ')[1].strip())
 
 for j in range(num_topk):
-    print(image_paths[topk_indices[j]].split('.')[0])
-
-# print(topk_indices)
-# print(f"Text token: {text_token}")
-# print(f"Model load time: {model_load_time-start_time }")
-# print(f"Listdir time: {listdir_time-model_load_time}")
-# print(f"Tokenize text time: {tokenize_text_time-listdir_time}")
-# print(f"Features load time: {features_load_time-tokenize_text_time}")
-# print(f"Similarity time: {similarity_time-features_load_time}")
+    print(image_UUIDs[topk_indices[j]])
