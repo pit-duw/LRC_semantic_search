@@ -48,11 +48,8 @@ function fixPath(winPath)
 end
 
 
-local refTable = {}
 
 LrTasks.startAsyncTask(function()
-    local completions = 0
-    
     outputToLog("Exporting ")
     -- Get the list of photos in the catalog and build a set of their UUIDs
     local catalog = LrApplication.activeCatalog()
@@ -101,7 +98,10 @@ LrTasks.startAsyncTask(function()
     LrTasks.execute("mkdir " .. folder)
 
     outputToLog("Exporting ")
-    local everythingExported = false
+    -- Keep count of the number of photos already exported 
+    local completions = 0
+    -- Keep a reference to each request, so that it is not garbage collected before the export is complete
+    local refTable = {}
     for _, photo in ipairs( photosToExport ) do
         if progressScope:isCanceled() then
             break

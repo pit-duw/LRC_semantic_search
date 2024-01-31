@@ -78,12 +78,7 @@ local function semanticSearchDialog()
 	local c = f:column {
 		spacing = f:dialog_spacing(),
 		--[[ This section of code defines a row in a Lightroom plugin dialog box.
-		It contains a static text field, an editable text field, and a push button.
-		The push button triggers a search action when clicked.
-		The search action executes a Python command with the specified search term and maximum search results.
-		The output of the Python command is read from a temporary file and displayed in a Lightroom collection.
-		If the collection does not exist, it is created.
-		The collection is then set as the active source in the Lightroom catalog. ]]
+		It contains a static text field and an editable text field. ]]
 		f:row {
 			f:static_text {
 				alignment = "right",
@@ -119,6 +114,14 @@ local function semanticSearchDialog()
 		actionVerb = "Search", -- label for the action button
 		contents = c,
 	}
+	
+	--[[ The action button triggers a search when clicked.
+	The search action executes a Python command with the specified search term 
+	and maximum number of search results.
+    The output of the Python command is read from a temporary file and displayed 
+    in a Lightroom collection "Search results". If the collection does not exist,
+    it is created. The collection is then set as the active source in the 
+    Lightroom catalog. ]]
     if result == 'ok' then -- action button was clicked
         LrTasks.startAsyncTask(function()
 			-- Create a progress indicator
@@ -131,6 +134,11 @@ local function semanticSearchDialog()
 			local cmd = pythonCommand .. fixPath(scriptPath) .. '"Photo of ' .. updateField.value .. '"' .. " " .. MaxSearchResults.value .. "' > " .. tempFile
 			outputToLog("Executing: " .. cmd)
 			local exitCode = LrTasks.execute(cmd)
+			if exitCode ~= 0 then
+				LrDialogs.showError("Error searching an image. Make sure that you have properly built the search index. (File > Plug-in extras > Export for search).")
+				progressScopeIndex:done()
+				return
+			end
 			outputToLog("Python script exited with code " .. exitCode)
 			local cmdOutput = LrFileUtils.readFile(tempFile) -- Read the output from the temp file
 			local catalog = LrApplication.activeCatalog()

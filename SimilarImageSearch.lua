@@ -1,9 +1,9 @@
 --[[----------------------------------------------------------------------------
 
 SemanticSearch.lua
-Displays a dialog window with options for semantic search among the images in 
+Displays a dialog window with options for search similar images in 
 the current catalog. The dialog window contains a text field for specifying the
-search term and one for specifying the maximum number of search results. 
+number of search results. 
 
 ------------------------------------------------------------------------------]]
 
@@ -58,6 +58,7 @@ end
 
 --------------------------------------------------------------------------------
 
+
 local function semanticSearchDialog()
 	-- Create an OS-specific view factory
 	local f = LrView.osFactory()
@@ -72,12 +73,7 @@ local function semanticSearchDialog()
 	local c = f:column {
 		spacing = f:dialog_spacing(),
 		--[[ This section of code defines a row in a Lightroom plugin dialog box.
-		It contains a static text field, an editable text field, and a push button.
-		The push button triggers a search action when clicked.
-		The search action executes a Python command with the UUID of the currently selected photo and maximum search results.
-		The output of the Python command is read from a temporary file and displayed in a Lightroom collection.
-		If the collection does not exist, it is created.
-		The collection is then set as the active source in the Lightroom catalog. ]]
+		It contains a static text field and an editable text field. ]]
 
 		-- Create a field for specifying the maximum number of search results
 		f:row {
@@ -105,6 +101,14 @@ local function semanticSearchDialog()
         actionVerb = "Search", -- label for the action button
 		contents = c,
 	}
+    
+    --[[ The action button triggers a search when clicked.
+    The search action executes a Python command with the UUID of the currently 
+    selected photo and maximum number of search results.
+    The output of the Python command is read from a temporary file and displayed 
+    in a Lightroom collection "Search results". If the collection does not exist,
+    it is created. The collection is then set as the active source in the 
+    Lightroom catalog. ]]
     if result == 'ok' then -- action button was clicked
         LrTasks.startAsyncTask(function()
 			-- Create a progress indicator
@@ -114,19 +118,21 @@ local function semanticSearchDialog()
             outputToLog( "Search button clicked." )
             local catalog = LrApplication.activeCatalog()
             local photo = catalog:getTargetPhoto()
-            local photoUUID = ""
             if photo == nil then
                 LrDialogs.showError("Please select exactly one photo.")
                 return
-            else 
-                photoUUID = photo:getRawMetadata("uuid")
             end
 
             -- Execute the Python script with the specified search term and maximum search results
             -- The results are piped to a temporary file
-            local cmd = pythonCommand .. fixPath(scriptPath) .. '"' .. photoUUID .. '"' .. " " .. MaxSearchResults.value .. "' > " .. tempFile
+            local cmd = pythonCommand .. fixPath(scriptPath) .. '"' .. photo:getRawMetadata("uuid") .. '"' .. " " .. MaxSearchResults.value .. "' > " .. tempFile
             outputToLog("Executing: " .. cmd)
             local exitCode = LrTasks.execute(cmd)
+			if exitCode ~= 0 then
+				LrDialogs.showError("Error searching an image. Make sure that you have properly built the search index. (File > Plug-in extras > Export for search).")
+				progressScopeIndex:done()
+				return
+			end
             outputToLog("Python script exited with code " .. exitCode)
             local cmdOutput = LrFileUtils.readFile(tempFile) -- Read the output from the temp file
             
