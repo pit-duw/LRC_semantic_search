@@ -2,3 +2,5 @@
 *.pt
 images*/*
 images/*
+.DS_store
+*/images*/*

@@ -48,7 +48,7 @@ function fixPath(winPath)
   
     -- Replace Windows drive with mount point in Linux subsystem
     local path = winPath:gsub("^(.+):", function(c)
-    return "/mnt/" .. c:lower()
+    	return "/mnt/" .. c:lower()
     end)
   
     -- Flip slashes the right way
@@ -131,7 +131,11 @@ local function semanticSearchDialog()
             outputToLog( "Search button clicked." )
 			-- Execute the Python script with the specified search term and maximum search results
 			-- The results are piped to a temporary file
+			-- For windows the python command is in quotes, due to WSL
 			local cmd = pythonCommand .. fixPath(scriptPath) .. '"Photo of ' .. updateField.value .. '"' .. " " .. MaxSearchResults.value .. "' > " .. tempFile
+			if MAC_ENV then
+				cmd = pythonCommand .. fixPath(scriptPath) .. '"Photo of ' .. updateField.value .. '"' .. " " .. MaxSearchResults.value .. " > " .. tempFile
+			end
 			outputToLog("Executing: " .. cmd)
 			local exitCode = LrTasks.execute(cmd)
 			if exitCode ~= 0 then
